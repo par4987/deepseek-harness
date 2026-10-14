@@ -86,6 +86,14 @@ export interface ImageBlock {
    * available read-only path instead of image bytes.
    */
   offloaded?: true
+  /**
+   * Verbatim description text a durable image-description decision recorded
+   * for this occurrence. Presence marks the occurrence described: every route
+   * sends this text in the image's place instead of image bytes, like
+   * `offloaded`, and the text is recoverable from the session log. Preserved
+   * by a message rewrite.
+   */
+  description?: string
 }
 
 /**

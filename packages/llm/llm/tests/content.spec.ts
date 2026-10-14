@@ -8,6 +8,7 @@ import {
   createToolResultMessage,
   createUserMessage,
   fileHandleText,
+  isRetainedImage,
   projectFilesToText,
   offloadedImageText,
   projectImagesForTextModel,
@@ -35,6 +36,10 @@ function image(bytes: number, offloaded?: true): Extract<ContentBlock, { type: '
     },
     ...offloaded === undefined ? {} : { offloaded },
   }
+}
+
+function describedImage(bytes: number, description: string): Extract<ContentBlock, { type: 'image' }> {
+  return { ...image(bytes), description }
 }
 
 describe('requiredImageOffload traversal', () => {
@@ -106,6 +111,19 @@ describe('projectOffloadedImages', () => {
     expect(projected[0]).toBe(unchanged)
     expect(projected[1]?.content).toEqual([{ type: 'text', text: OMITTED }])
   })
+
+  it('replaces described occurrences with their recorded text beside offloaded and retained ones', () => {
+    const messages = [createUserMessage({
+      content: [describedImage(3, 'a red square'), image(3, true), image(3)],
+      source,
+    })]
+    const projected = projectOffloadedImages(messages, () => OMITTED)
+    expect(projected[0]?.content).toEqual([
+      { type: 'text', text: `[image sha256:${'a'.repeat(64)} described: a red square]` },
+      { type: 'text', text: OMITTED },
+      image(3),
+    ])
+  })
 })
 
 describe('requiredImageOffload', () => {
@@ -134,6 +152,14 @@ describe('requiredImageOffload', () => {
   it('skips offloaded occurrences and accounts inline bytes by their base64 length', () => {
     expect(requiredImageOffload(request([3, 3, 3]), { representation: 'base64', maxBytes: 8 }, bytesOf)).toBe(1)
     expect(requiredImageOffload(request([3, 3, 3], [0]), { representation: 'base64', maxBytes: 8 }, bytesOf)).toBe(0)
+  })
+
+  it('skips described occurrences from budget accounting', () => {
+    const messages = [createUserMessage({
+      content: [describedImage(3, 'a red square'), image(3)],
+      source,
+    })]
+    expect(requiredImageOffload(messages, { representation: 'raw', maxImages: 0 }, bytesOf)).toBe(1)
   })
 })
 
@@ -311,6 +337,26 @@ describe('projectImagesForTextModel', () => {
       { type: 'text', text: '[image omitted because this model accepts text only; attachment sha256:aaaaaaaa]' },
       { type: 'text', text: 'after' },
     ])
+  })
+
+  it('prefers a recorded description over the deterministic placeholder', () => {
+    const messages = [createUserMessage({
+      content: [describedImage(3, 'a red square'), image(3)],
+      source,
+    })]
+    const projected = projectImagesForTextModel(messages)
+    expect(projected[0]?.content).toEqual([
+      { type: 'text', text: `[image sha256:${'a'.repeat(64)} described: a red square]` },
+      { type: 'text', text: '[image omitted because this model accepts text only; attachment sha256:aaaaaaaa]' },
+    ])
+  })
+})
+
+describe('isRetainedImage', () => {
+  it('keeps plain occurrences and drops offloaded or described ones', () => {
+    expect(isRetainedImage(image(3))).toBe(true)
+    expect(isRetainedImage(image(3, true))).toBe(false)
+    expect(isRetainedImage(describedImage(3, 'a red square'))).toBe(false)
   })
 })
 

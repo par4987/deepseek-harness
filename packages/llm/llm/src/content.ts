@@ -117,6 +117,16 @@ export function offloadedImageText(
 }
 
 /**
+ * Stable model-facing text for one durably described image occurrence.
+ * @param ref - durable normalized attachment whose image a vision chain replaced.
+ * @param description - verbatim description text the decision recorded for this occurrence.
+ * @returns the image identity followed by the recorded description.
+ */
+export function describedImageText(ref: ImageAttachmentRef, description: string): string {
+  return `[image ${imageIdentity(ref)} described: ${description}]`
+}
+
+/**
  * True when typed model content contains an image block. This is the one image
  * walk shared by every image policy (capability gating, text-only
  * serialization, compaction survey), so a consumer cannot silently diverge.
@@ -125,6 +135,18 @@ export function offloadedImageText(
  */
 export function contentHasImage(content: readonly ContentBlock[]): boolean {
   return content.some(block => block.type === 'image')
+}
+
+/**
+ * True when an image occurrence is still sent as image bytes: neither a
+ * durable offload nor a durable description replaced it. Offload selection,
+ * budget arithmetic, and request-image collection share this one definition,
+ * so a consumer cannot silently diverge.
+ * @param block - one durable image occurrence.
+ * @returns whether a route may still send this occurrence's bytes.
+ */
+export function isRetainedImage(block: ImageBlock): boolean {
+  return block.offloaded !== true && block.description === undefined
 }
 
 /**
@@ -223,13 +245,18 @@ function visitImageBlocks(content: readonly ContentBlock[], visit: (block: Image
   }
 }
 
-/** Replace every offloaded occurrence with its placeholder. */
+/** Replace every described occurrence with its recorded text and every offloaded occurrence with its placeholder. */
 function replaceOffloadedImages(
   blocks: readonly ContentBlock[],
   placeholder: (ref: ImageAttachmentRef) => string,
 ): ContentBlock[] {
   let next: ContentBlock[] | undefined
   for (const [index, block] of blocks.entries()) {
+    if (block.type === 'image' && block.description !== undefined) {
+      next ??= blocks.slice(0, index)
+      next.push({ type: 'text', text: describedImageText(block.attachment, block.description) })
+      continue
+    }
     if (block.type === 'image' && block.offloaded === true) {
       next ??= blocks.slice(0, index)
       next.push({ type: 'text', text: placeholder(block.attachment) })
@@ -323,7 +350,7 @@ export function requiredImageOffload(
   const lengths: number[] = []
   for (const message of messages) {
     visitImageBlocks(message.content, (block) => {
-      if (block.offloaded === true) return
+      if (!isRetainedImage(block)) return
       const bytes = versionBytes(block)
       lengths.push(budget.representation === 'base64' ? base64Length(bytes) : bytes)
     })
@@ -331,13 +358,18 @@ export function requiredImageOffload(
   return offloadedImagePrefixCount(lengths, budget)
 }
 
-/** Replace every image occurrence for a text-only model. */
+/** Replace every image occurrence for a text-only model, preferring a recorded description. */
 function replaceImagesForTextModel(blocks: readonly ContentBlock[]): ContentBlock[] {
   let next: ContentBlock[] | undefined
   for (const [index, block] of blocks.entries()) {
     if (block.type === 'image') {
       next ??= blocks.slice(0, index)
-      next.push({ type: 'text', text: textOnlyImageText(block.attachment) })
+      next.push({
+        type: 'text',
+        text: block.description !== undefined
+          ? describedImageText(block.attachment, block.description)
+          : textOnlyImageText(block.attachment),
+      })
       continue
     }
     next?.push(block)
