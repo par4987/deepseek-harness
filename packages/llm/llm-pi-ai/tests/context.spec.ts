@@ -6,7 +6,7 @@ import type {
   ImageRequestTarget,
   RequestImageAttachment,
 } from '@deepseek-ai/dsh-attachment'
-import { createDeveloperMessage, ToolCallId, createAssistantMessage, createMessage, createToolResultMessage, createUserMessage, offloadedImageText } from '@deepseek-ai/dsh-llm'
+import { createDeveloperMessage, ToolCallId, createAssistantMessage, createMessage, createToolResultMessage, createUserMessage, describedImageText, offloadedImageText } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, GenerateOptions, Message, RequestUserInput } from '@deepseek-ai/dsh-llm'
 import type { ContextFormed } from '@deepseek-ai/dsh-llm'
 import { toPiContext } from '../src/context.ts'
@@ -347,6 +347,26 @@ describe('pi-ai request context conversion', () => {
     expect(readImageRequest).toHaveBeenCalledTimes(1)
     expect(readImageRequest.mock.calls[0]?.[0]).toEqual(recent)
   })
+
+  it('renders a described occurrence as its recorded text and prepares no bytes for it', async () => {
+    const described: ImageAttachmentRef = { ...ref, attachmentId: AttachmentId(`sha256:${'e'.repeat(64)}`), bytes: 3 }
+    const readImageRequest = vi.fn((value: ImageAttachmentRef) => {
+      if (value.attachmentId === described.attachmentId) throw new Error('described image must not be read')
+      return Promise.resolve(requestImage(value, Uint8Array.of(1, 2, 3)))
+    })
+
+    const context = await toPiContext(request([user([
+      { type: 'image', attachment: described, description: 'a red square' },
+    ])]), imageContext(projectionStore(readImageRequest), { maxRequestImageBytes: 4 }))
+
+    // Post-projection the message content is all text, which pi-ai flattens to a joined string.
+    expect(context.messages[0]).toMatchObject({
+      role: 'user',
+      content: describedImageText(described, 'a red square'),
+    })
+    expect(readImageRequest).not.toHaveBeenCalled()
+  })
+
   it('fails with the count to offload when exact encoded bytes exceed the bound', async () => {
     const sized: ImageAttachmentRef = { ...ref, bytes: 3 }
     const readImageRequest = vi.fn((value: ImageAttachmentRef) => Promise.resolve({

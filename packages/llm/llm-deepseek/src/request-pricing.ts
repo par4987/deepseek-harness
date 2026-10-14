@@ -1,15 +1,16 @@
 /**
  * Provider-side request-image pricing for DeepSeek routes: prices every
  * retained surface occurrence at its per-model request target with
- * the published vision-token accounting, and every occurrence the surface
- * marks offloaded as its placeholder text. Consumed synchronously by the
+ * the published vision-token accounting, every occurrence the surface
+ * marks offloaded as its placeholder text, and every described occurrence
+ * as its recorded description text. Consumed synchronously by the
  * token meter through `LlmAdapter.imageRequestPricing`; provider usage
  * remains the authoritative anchor for completed requests.
  *
  * @module dsh-llm-deepseek/request-pricing
  */
 
-import { offloadedImageText, requestImageHandleText, textOnlyImageText } from '@deepseek-ai/dsh-llm'
+import { describedImageText, offloadedImageText, requestImageHandleText, textOnlyImageText } from '@deepseek-ai/dsh-llm'
 import type { ImageAttachmentAccessResolver, ImageBlock, LlmImageRequestPrice, LlmImageRequestPricing } from '@deepseek-ai/dsh-llm'
 import { longEdgeDimensions, requestImageDimensions } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentRef, ImageRequestTarget } from '@deepseek-ai/dsh-attachment'
@@ -65,20 +66,28 @@ export function resolveRequestImageTarget(
 }
 
 /**
- * Price one occurrence a text-only route substitutes with deterministic text,
- * reproducing the `projectImagesForTextModel` substitution `LlmRuntime`
- * applies before dispatching to a route without the `image` modality.
+ * Price one occurrence a text-only route substitutes with text, reproducing
+ * the `projectImagesForTextModel` substitution `LlmRuntime` applies before
+ * dispatching to a route without the `image` modality: a recorded
+ * description replaces the occurrence, otherwise the deterministic
+ * placeholder names it.
  */
 function textOnlyPrice(block: ImageBlock): LlmImageRequestPrice {
-  return { visualTokens: 0, text: textOnlyImageText(block.attachment) }
+  return {
+    visualTokens: 0,
+    text: block.description !== undefined
+      ? describedImageText(block.attachment, block.description)
+      : textOnlyImageText(block.attachment),
+  }
 }
 
 /**
  * Build the request-image pricing for one DeepSeek route from a validated
  * connection snapshot. Uncatalogued and text-only models price every
- * occurrence as its deterministic text substitution; image-capable models
- * price an offloaded occurrence as its placeholder text and a retained one by
- * its projected request dimensions, with each occurrence's handle or
+ * occurrence as its text substitution, preferring a recorded description;
+ * image-capable models price an offloaded occurrence as its placeholder
+ * text, a described one as its recorded description text, and a retained
+ * one by its projected request dimensions, with each occurrence's handle or
  * placeholder text built through the same access resolution the serializer
  * uses. Access paths resolve at pricing time, so a path that changes before
  * the request only shifts the text price by its own length.
@@ -97,7 +106,10 @@ export function deepSeekImageRequestPricing(
     return { priceImages: images => images.map(textOnlyPrice) }
   }
   return {
-    priceImages: images => images.map(({ attachment: ref, offloaded }) => {
+    priceImages: images => images.map(({ attachment: ref, offloaded, description }) => {
+      if (description !== undefined) {
+        return { visualTokens: 0, text: describedImageText(ref, description) }
+      }
       if (offloaded === true) {
         return { visualTokens: 0, text: offloadedImageText(ref, resolveAccess?.(ref)) }
       }

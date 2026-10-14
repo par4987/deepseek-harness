@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { offloadedImageText, requestImageHandleText, textOnlyImageText } from '@deepseek-ai/dsh-llm'
+import { describedImageText, offloadedImageText, requestImageHandleText, textOnlyImageText } from '@deepseek-ai/dsh-llm'
 import type { ImageBlock } from '@deepseek-ai/dsh-llm'
 import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
@@ -123,6 +123,25 @@ describe('DeepSeek request-image pricing', () => {
       { visualTokens: 422, text: requestImageHandleText(images[1]!, { width: 800, height: 800 }) },
       { visualTokens: 422, text: requestImageHandleText(images[2]!, { width: 800, height: 800 }) },
     ])
+  })
+
+  it('prices a described occurrence as its recorded text on a vision model', () => {
+    const image = ref('photo', 1920, 1080)
+    const prices = deepSeekImageRequestPricing(
+      connection(),
+      'vision',
+    ).priceImages([{ ...block(image), description: 'a red square' }])
+    expect(prices).toEqual([{ visualTokens: 0, text: describedImageText(image, 'a red square') }])
+  })
+
+  it('prices a described occurrence as its recorded text on a text-only model', () => {
+    const image = ref('photo', 1920, 1080)
+    const options = resolveAdapterOptions({ models: [{ id: 'text-only' }] })
+    const prices = deepSeekImageRequestPricing(
+      options,
+      'text-only',
+    ).priceImages([{ ...block(image), description: 'a red square' }])
+    expect(prices).toEqual([{ visualTokens: 0, text: describedImageText(image, 'a red square') }])
   })
 
   it('prices a retained oversized occurrence at its visual price: the surface, not the budget, decides offload', () => {

@@ -5,7 +5,7 @@
  */
 
 import { brandString } from '@deepseek-ai/dsh-brand'
-import { contentHasImage, IMAGE_OFFLOAD_REQUIRED_CODE, LlmError, offloadedImageText, projectOffloadedImages, requestImageHandleText, requiredImageOffload } from '@deepseek-ai/dsh-llm'
+import { contentHasImage, IMAGE_OFFLOAD_REQUIRED_CODE, isRetainedImage, LlmError, offloadedImageText, projectOffloadedImages, requestImageHandleText, requiredImageOffload } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, GenerateOptions, ImageAttachmentAccessResolver, Message, RequestMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import type {
   AttachmentId,
@@ -103,7 +103,7 @@ function collectImageRefs(
 ): void {
   for (const block of blocks) {
     if (block.type === 'image') {
-      if (block.offloaded !== true) refs.set(block.attachment.attachmentId, block.attachment)
+      if (isRetainedImage(block)) refs.set(block.attachment.attachmentId, block.attachment)
     }
   }
 }
