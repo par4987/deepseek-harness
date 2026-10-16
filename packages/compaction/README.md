@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The `compaction/` group keeps long agent conversations working near the model's context limit: older history is condensed into a summary automatically as token pressure builds, on demand with `/compact`, oversized tool outputs can be trimmed first so there is less to condense, and images an image-capable route can no longer send are replaced with placeholders. The shipped `dsh` base enables the feature by default — mount the packages explicitly to tune when and how condensation happens. The token measurement that decides when to condense lives in a separate LLM-family service.
+The `compaction/` group keeps long agent conversations working near the model's context limit: older history condenses into a summary automatically as token pressure builds, on demand with `/compact`, oversized tool outputs can be trimmed first, images an image-capable route can no longer send are replaced with placeholders, and images a text-only route cannot see are described through a configured vision chain. The shipped `dsh` base enables the feature by default — mount the packages explicitly to tune when and how condensation happens. The token measurement that decides when to condense lives in a separate LLM-family service.
 
 ## Table of Contents
 
@@ -30,6 +30,7 @@ Each package below provides one piece of the feature; open a package page for ho
 | [`compaction-basic/`](compaction-basic/README.md) | Automatic condensation of older history into a summary as token pressure builds | registers `ctx.compaction` |
 | [`compaction-tool-result-pruner/`](compaction-tool-result-pruner/README.md) | Trims oversized tool outputs so less history needs condensing | `ctx.toolResultPruner` |
 | [`compaction-image-offload/`](compaction-image-offload/README.md) | Replaces over-budget request images with placeholders when an image-capable route rejects a request | listens to `agent/request-error` |
+| [`compaction-image-describe/`](compaction-image-describe/README.md) | Describes surface images through a configured vision chain when the selected route accepts text only | listens to `agent/request` |
 | [`command-compact/`](command-compact/README.md) | The `/compact` command to condense history on demand | registers on `ctx.commands` |
 
 -----

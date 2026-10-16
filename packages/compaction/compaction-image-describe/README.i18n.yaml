@@ -1,0 +1,61 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/compaction/compaction-image-describe/README.md
+/:
+  en: 39b47529147664ab
+  zh: b45a1e77a1dc1686
+/deepseek-ai-dsh-compaction-image-describe:
+  en: 3839dce91c89f8a7
+  zh: f62f1ffac5e847e2
+/deepseek-ai-dsh-compaction-image-describe/summary:
+  en: af8aca273251edff
+  zh: 26f529881ab2ba90
+/deepseek-ai-dsh-compaction-image-describe/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-compaction-image-describe/use-this-package:
+  en: c2f2fe72863f7654
+  zh: f86517ac27061663
+/deepseek-ai-dsh-compaction-image-describe/use-this-package/when-to-choose-it:
+  en: 854f578b0209201b
+  zh: 606d3949a9303dea
+/deepseek-ai-dsh-compaction-image-describe/use-this-package/minimal-configuration:
+  en: 5bbf4f8f5cfdccbd
+  zh: 852a980b1cd89a0a
+/deepseek-ai-dsh-compaction-image-describe/use-this-package/what-you-can-observe:
+  en: acdf1f35152a4c40
+  zh: 0ef1f3be95d6ab79
+/deepseek-ai-dsh-compaction-image-describe/use-this-package/failures-and-recovery:
+  en: e5a91b954cd09731
+  zh: bd7b6b3aa837638d
+/deepseek-ai-dsh-compaction-image-describe/understand-the-implementation:
+  en: 9c08e500ff0cb2bb
+  zh: 4e795178586e4669
+/deepseek-ai-dsh-compaction-image-describe/further-exploration:
+  en: 4a57dfd1aab9944c
+  zh: c439d03df0824af6
+/deepseek-ai-dsh-compaction-image-describe/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-compaction-image-describe/model-experience/described-request-images:
+  en: c1d6107027c3f7db
+  zh: 6597333718f807f3
+/deepseek-ai-dsh-compaction-image-describe/model-experience/described-request-images/what-the-model-sees:
+  en: fabe19edcc9556e7
+  zh: 9f1b30357e56c51d
+/deepseek-ai-dsh-compaction-image-describe/model-experience/described-request-images/what-the-model-sees/verbatim-describe-instruction:
+  en: d5c57fa2686896cc
+  zh: eae21950136474b3
+/deepseek-ai-dsh-compaction-image-describe/model-experience/described-request-images/token-effect:
+  en: 1b1e5f9b35f3309f
+  zh: 07c41ea1677201ba
+/deepseek-ai-dsh-compaction-image-describe/model-experience/described-request-images/kv-cache-effect:
+  en: 41e6b656b5201231
+  zh: e86121eb365f661b
+/deepseek-ai-dsh-compaction-image-describe/known-limitations-and-deferred-work:
+  en: 07968b2d8b3385e6
+  zh: d54546134f1ac7ea
+/deepseek-ai-dsh-compaction-image-describe/known-limitations-and-deferred-work/dev-note:
+  en: 364fd06e47e513d6
+  zh: 6e600a84eeec7c0f

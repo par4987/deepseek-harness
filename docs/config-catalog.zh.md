@@ -730,6 +730,39 @@ export interface ModelCompactPolicyConfig extends CompactionPolicyConfig {
 ```
 <!-- END GENERATED config-catalog:@deepseek-ai/dsh-compaction-basic -->
 
+<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-compaction-image-describe -->
+<a id="deepseek-aidsh-compaction-image-describe"></a>
+
+## `@deepseek-ai/dsh-compaction-image-describe`
+
+- `inject`: `llm` · `sessions`
+- `source`: [`packages/compaction/compaction-image-describe/src/types.ts:15`](../packages/compaction/compaction-image-describe/src/types.ts)
+
+```ts config-catalog
+/** Validated plugin configuration. */
+export interface ImageDescribeConfig {
+  /** Ordered describe chain; the first route that answers within its budget describes. */
+  readonly visionRoutes: VisionRoute[]
+  /** Route ordering strategy: the configured chain as given, or the selected route's own provider fronted first. */
+  readonly routeStrategy: 'chain' | 'same-provider'
+  /** Instruction sent beside each described image. */
+  readonly describePrompt: string
+  /** Cap on one description's character count. */
+  readonly maxDescriptionChars: number
+  /** Per-route budget for one description before the route yields to the next. */
+  readonly describeTimeoutMs: number
+}
+
+/** One vision-capable route a description may be requested through. */
+export interface VisionRoute {
+  /** Provider id of the describing route. */
+  readonly provider: string
+  /** Model id of the describing route. */
+  readonly model: string
+}
+```
+<!-- END GENERATED config-catalog:@deepseek-ai/dsh-compaction-image-describe -->
+
 <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-compaction-tool-result-pruner -->
 <a id="deepseek-aidsh-compaction-tool-result-pruner"></a>
 

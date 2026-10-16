@@ -9,7 +9,7 @@ kind: persistence-change
 
 ## 概述
 
-为 ImageBlock 增加可选的 description 字段，由持久的图片描述决策写入。
+为 ImageBlock 增加可选的 description 字段，由持久的图片描述决策写入，并新增承载这些决策的 `image/describe` 事件根。
 
 ## 目录
 
@@ -46,6 +46,10 @@ changes:
     previous: "2026-10-05-working-directory-attribution"
     after: "f7bb240d008660d396f2b2b67e135940f426207289d4756e591a70ea13ca6188"
     decision: same-version
+  - root: "event:image/describe"
+    previous: null
+    after: "549a3593b9736573de60ea1826a924ea4686da7243f1a86996c382f8743322dd"
+    decision: same-version
   - root: "event:session/title-llm-request"
     previous: "2026-10-07-title-reasoning-effort"
     after: "6a4d4927928104a4057f6183376161dffb2e7e6b1579cab71dc5b8183254fe12"
@@ -77,10 +81,12 @@ changes:
 
 已有日志仍然有效：旧读取方看到不带 description 的图片块并按现有确定性占位文本投影，旧版本读取新日志行为不变；新读取方在旧日志上读不到任何 description，行为同样不变。该字段在所有受影响根上均为可选，仅凭存在即标记该出现位置已被描述，判别式不变，因此保持 same-version。
 
+`image/describe` 根是增量式的：旧日志从不包含它，旧读取方不受影响；新日志只会在挂载了描述插件的部署中出现该事件。恢复包含该事件的日志需要所属插件注册的投影，与其他所有插件拥有的消息投影一致。
+
 <a id="verification"></a>
 ## 验证
 
-pnpm exec vitest run packages/llm/llm/tests/content.spec.ts：37 个测试通过，覆盖 projectImagesForTextModel 的描述优先、projectOffloadedImages 的描述渲染、经 isRetainedImage 的预算跳过，以及 retained 真值表。
+pnpm exec vitest run packages/llm/llm/tests/content.spec.ts：37 个测试通过，覆盖 projectImagesForTextModel 的描述优先、projectOffloadedImages 的描述渲染、经 isRetainedImage 的预算跳过，以及 retained 真值表。pnpm vitest run --project thread-safe packages/compaction/compaction-image-describe：37 个测试通过，覆盖投影的校验、标记与回放派生，链路顺序与预算，遍历的去重，以及经纯文本路由的真实 Loader 组合。
 
 <a id="dev-note"></a>
 ## 开发备注

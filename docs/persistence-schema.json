@@ -10275,6 +10275,101 @@
       }
     },
     {
+      "key": "event:image/describe",
+      "kind": "event",
+      "event": "image/describe",
+      "surface": false,
+      "digest": "549a3593b9736573de60ea1826a924ea4686da7243f1a86996c382f8743322dd",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 6,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 7,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "targets",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 3
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "description",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "imageIndex",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "seq",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "image/describe"
+          }
+        ]
+      }
+    },
+    {
       "key": "event:image/offload",
       "kind": "event",
       "event": "image/offload",
@@ -23308,6 +23403,11 @@
       "sources": []
     },
     {
+      "digest": "549a3593b9736573de60ea1826a924ea4686da7243f1a86996c382f8743322dd",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "557e148d30b79ee48645850832b30c717d7c3b64641deb5d6133b8b4e91ee0b8",
       "names": [],
       "sources": []
@@ -23562,6 +23662,11 @@
       ]
     },
     {
+      "digest": "664050ba14b836e45f7b3bffc9883b63b3296c08cda367c61848a9e9ab5371ea",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "66ba70f6f068da443f969a0b947a013c3addd776b9b60a0a393759c19825e9a2",
       "names": [
         "packages/llm/llm/src/types.ts#ToolSchema"
@@ -23807,6 +23912,15 @@
       "digest": "76632533f67879dcb346fcae640540dbc89b2472b0bce88c59f7e48fc5c0e668",
       "names": [],
       "sources": []
+    },
+    {
+      "digest": "771da9d8afcf6bc2b415ec626eaf56e3630317cd1a739ce4cb940da8e1e20417",
+      "names": [
+        "packages/compaction/compaction-image-describe/src/types.ts#ImageDescribeTarget"
+      ],
+      "sources": [
+        "packages/compaction/compaction-image-describe/src/types.ts:29"
+      ]
     },
     {
       "digest": "78a90baceaa780450e5d1d3455fd7f030658299be2075261c31e09d9849eb50e",
@@ -25117,6 +25231,11 @@
       ]
     },
     {
+      "digest": "d058919b8c4286a836a3d077714ad06c519a714b61c927e4ce9287c464217013",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "d0fbb0ca1bbba059830826f33f801da1aced35a2504376d61e020bdfec8d50c0",
       "names": [],
       "sources": []
@@ -25668,6 +25787,13 @@
       "digest": "fb8b6a2e53cb9cf44c551176de0fb77d1ddc60037b99a891ff8a860b6d5c29a0",
       "names": [],
       "sources": []
+    },
+    {
+      "digest": "fb90fbd3c63b242284908496b3676ded4a6ea1b6d200e0ebfce72eb15a4a6ab7",
+      "names": [],
+      "sources": [
+        "packages/compaction/compaction-image-describe/src/projection.ts:19"
+      ]
     },
     {
       "digest": "fbd2c74b346a1595b376139c587fadd23e4a21acc9c0abce342975b6cfc60986",

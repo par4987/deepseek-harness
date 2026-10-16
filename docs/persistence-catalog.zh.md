@@ -45,6 +45,7 @@
 | `event:goal/change` | event | `763c8a20af487263a0080548274f7437ef4a86e0ba8769127d1ced10a72c664d` | [`{ type: "goal/change" }`](#persistence-type-sha256-763c8a20af487263a0080548274f7437ef4a86e0ba8769127d1ced10a72c664d) |
 | `event:hook/invoked` | event | `8a6e1ec9e8db346b0e02f027db73c07a94f067a26d40c1aef1abd09c47ce7ba0` | [`{ type: "hook/invoked" }`](#persistence-type-sha256-8a6e1ec9e8db346b0e02f027db73c07a94f067a26d40c1aef1abd09c47ce7ba0) |
 | `event:hook/result` | event | `e75916628f3f10c2d50658bd143052a46285fbf1a9a700ba54947614603d26b4` | [`{ type: "hook/result" }`](#persistence-type-sha256-e75916628f3f10c2d50658bd143052a46285fbf1a9a700ba54947614603d26b4) |
+| `event:image/describe` | event | `549a3593b9736573de60ea1826a924ea4686da7243f1a86996c382f8743322dd` | [`{ type: "image/describe" }`](#persistence-type-sha256-549a3593b9736573de60ea1826a924ea4686da7243f1a86996c382f8743322dd) |
 | `event:image/offload` | event | `b222069eea2d768065161c1147b1f2c78c1b54328c84b3586ae5c8f91b8ed35e` | [`{ type: "image/offload" }`](#persistence-type-sha256-b222069eea2d768065161c1147b1f2c78c1b54328c84b3586ae5c8f91b8ed35e) |
 | `event:llm/retry` | event | `525254db03b1d1e6b74cf55aced52817568331ac1f96c0818728910b6692e336` | [`{ type: "llm/retry" }`](#persistence-type-sha256-525254db03b1d1e6b74cf55aced52817568331ac1f96c0818728910b6692e336) |
 | `event:llm/retry-started` | event | `48e5c9861f16ac07e78cb7b5ae9dabdf7bb85c58baed5a51b4ad275050ea58e3` | [`{ type: "llm/retry-started" }`](#persistence-type-sha256-48e5c9861f16ac07e78cb7b5ae9dabdf7bb85c58baed5a51b4ad275050ea58e3) |
@@ -611,6 +612,24 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 来源：[`packages/experimental/hook-protocol/src/types.ts:31`](../packages/experimental/hook-protocol/src/types.ts)
 
 ### `image/*`
+
+<a id="imagedescribe--log-only"></a>
+
+#### `image/describe` — log-only
+
+```ts persistence-catalog
+/**
+ * Record the description text a configured vision chain produced for selected
+ * input-image occurrences, so text-only routes receive the description in the
+ * image's place. Targets name unique current user/message or tool/result
+ * occurrences in current model-request order; each carries its verbatim
+ * description. Message nodes and identities remain unchanged.
+ * @messageProjection
+ */
+'image/describe': { targets: ImageDescribeTarget[] }
+```
+
+来源：[`packages/compaction/compaction-image-describe/src/projection.ts:19`](../packages/compaction/compaction-image-describe/src/projection.ts)
 
 <a id="imageoffload--log-only"></a>
 
@@ -1905,6 +1924,14 @@ SHA-256: `bb94f3217aa56c8876bbff0b8460d6a73cbead545659abb29e76cd0cf2cb92d6`
 SHA-256: `fb8b6a2e53cb9cf44c551176de0fb77d1ddc60037b99a891ff8a860b6d5c29a0`
 
 `"image"`
+
+<a id="persistence-type-sha256-664050ba14b836e45f7b3bffc9883b63b3296c08cda367c61848a9e9ab5371ea"></a>
+
+### `"image/describe"`
+
+SHA-256: `664050ba14b836e45f7b3bffc9883b63b3296c08cda367c61848a9e9ab5371ea`
+
+`"image/describe"`
 
 <a id="persistence-type-sha256-de30b1fa12c75f81df6aa4096e1595296d2d04e2be14a7c29849cf8028b79048"></a>
 
@@ -3637,6 +3664,32 @@ SHA-256: `f079f995cdfe673b2d3d4afc32354ece1a5842aa85ae449dd55564e024d0f555`
 | `description` | 可选 | `string` |
 | `offloaded` | 可选 | `true` |
 | `type` | 必需 | `"image"` |
+
+<a id="persistence-type-sha256-771da9d8afcf6bc2b415ec626eaf56e3630317cd1a739ce4cb940da8e1e20417"></a>
+
+<a id="persistence-type-imagedescribetarget"></a>
+
+<a id="persistence-type-packagescompactioncompaction-image-describesrctypestsimagedescribetarget"></a>
+
+### `ImageDescribeTarget`
+
+SHA-256: `771da9d8afcf6bc2b415ec626eaf56e3630317cd1a739ce4cb940da8e1e20417`
+
+来源：[`packages/compaction/compaction-image-describe/src/types.ts:29`](../packages/compaction/compaction-image-describe/src/types.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `description` | 必需 | `string` |
+| `imageIndex` | 必需 | `number` |
+| `seq` | 必需 | `number` |
+
+<a id="persistence-type-sha256-d058919b8c4286a836a3d077714ad06c519a714b61c927e4ce9287c464217013"></a>
+
+### `ImageDescribeTarget[]`
+
+SHA-256: `d058919b8c4286a836a3d077714ad06c519a714b61c927e4ce9287c464217013`
+
+[`ImageDescribeTarget`](#persistence-type-sha256-771da9d8afcf6bc2b415ec626eaf56e3630317cd1a739ce4cb940da8e1e20417) 的数组。
 
 <a id="persistence-type-sha256-2f1e6a7ebace43d727ae138ddcd352eb3813960009e5805b8c5ac84300c97716"></a>
 
@@ -7677,6 +7730,18 @@ SHA-256: `477614bca595a9e7adb5a1870be446b9a8684f3ba8950259d6289f2d3b74f028`
 |---|---|---|
 | `targets` | 必需 | [`ImageOffloadTarget[]`](#persistence-type-sha256-9e2c06d8653585b33d72d5c1a80da79c8a24a88c284409bca15cc0f0ead5ebfb) |
 
+<a id="persistence-type-sha256-fb90fbd3c63b242284908496b3676ded4a6ea1b6d200e0ebfce72eb15a4a6ab7"></a>
+
+### `{ targets }`
+
+SHA-256: `fb90fbd3c63b242284908496b3676ded4a6ea1b6d200e0ebfce72eb15a4a6ab7`
+
+来源：[`packages/compaction/compaction-image-describe/src/projection.ts:19`](../packages/compaction/compaction-image-describe/src/projection.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `targets` | 必需 | [`ImageDescribeTarget[]`](#persistence-type-sha256-d058919b8c4286a836a3d077714ad06c519a714b61c927e4ce9287c464217013) |
+
 <a id="persistence-type-sha256-a40d12070f6f4a124f32fb3cc86e7857554702e32f0eda3080a25c4b9ac9b18c"></a>
 
 ### `{ task, teamId, version }`
@@ -8109,6 +8174,22 @@ SHA-256: `e75916628f3f10c2d50658bd143052a46285fbf1a9a700ba54947614603d26b4`
 | `seq` | 必需 | `number` |
 | `time` | 必需 | `number` |
 | `type` | 必需 | `"hook/result"` |
+
+<a id="persistence-type-sha256-549a3593b9736573de60ea1826a924ea4686da7243f1a86996c382f8743322dd"></a>
+
+<a id="persistence-type-eventimagedescribe"></a>
+
+### `{ type: "image/describe" }`
+
+SHA-256: `549a3593b9736573de60ea1826a924ea4686da7243f1a86996c382f8743322dd`
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `data` | 必需 | [`{ targets }`](#persistence-type-sha256-fb90fbd3c63b242284908496b3676ded4a6ea1b6d200e0ebfce72eb15a4a6ab7) |
+| `ignorable` | 可选 | `true` |
+| `seq` | 必需 | `number` |
+| `time` | 必需 | `number` |
+| `type` | 必需 | `"image/describe"` |
 
 <a id="persistence-type-sha256-b222069eea2d768065161c1147b1f2c78c1b54328c84b3586ae5c8f91b8ed35e"></a>
 

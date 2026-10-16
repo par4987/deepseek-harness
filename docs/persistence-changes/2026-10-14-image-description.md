@@ -9,7 +9,7 @@ English | [中文](2026-10-14-image-description.zh.md)
 
 ## Summary
 
-Adds the optional ImageBlock description field recorded by a durable image-description decision.
+Adds the optional ImageBlock description field recorded by a durable image-description decision and the new `image/describe` event root that carries those decisions.
 
 ## Table of Contents
 
@@ -46,6 +46,10 @@ changes:
     previous: "2026-10-05-working-directory-attribution"
     after: "f7bb240d008660d396f2b2b67e135940f426207289d4756e591a70ea13ca6188"
     decision: same-version
+  - root: "event:image/describe"
+    previous: null
+    after: "549a3593b9736573de60ea1826a924ea4686da7243f1a86996c382f8743322dd"
+    decision: same-version
   - root: "event:session/title-llm-request"
     previous: "2026-10-07-title-reasoning-effort"
     after: "6a4d4927928104a4057f6183376161dffb2e7e6b1579cab71dc5b8183254fe12"
@@ -77,10 +81,12 @@ changes:
 
 Existing logs remain valid: an old reader sees image blocks without a description and projects the existing deterministic placeholders, so an old harness reads a new log without behavior change. A new reader on an old log sees no descriptions and behaves identically. The field is optional on every affected root, presence alone marks the occurrence described, and no discriminator changes, so the change stays same-version.
 
+The `image/describe` root is additive: old logs never contain it, so old readers are unaffected, and new logs carry it only where the describing plugin is mounted. Restoring a log that contains the event requires the owning plugin's registered projection, as with every plugin-owned message projection.
+
 <a id="verification"></a>
 ## Verification
 
-pnpm exec vitest run packages/llm/llm/tests/content.spec.ts: 37 tests passed, covering the described preference in projectImagesForTextModel, the described rendering in projectOffloadedImages, the budget skip through isRetainedImage, and the retained truth table.
+pnpm exec vitest run packages/llm/llm/tests/content.spec.ts: 37 tests passed, covering the described preference in projectImagesForTextModel, the described rendering in projectOffloadedImages, the budget skip through isRetainedImage, and the retained truth table. pnpm vitest run --project thread-safe packages/compaction/compaction-image-describe: 37 tests passed, covering the projection's validation, marking, and replay derivation, the chain order and budgets, the walk's dedup, and the real Loader composition through a text-only route.
 
 <a id="dev-note"></a>
 ## Dev Note

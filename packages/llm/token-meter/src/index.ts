@@ -5,6 +5,7 @@
  */
 
 import { Context, Service } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-compaction-image-describe/projection'
 import type {} from '@deepseek-ai/dsh-compaction-image-offload/projection'
 import z from '@deepseek-ai/schemastery'
 import { assembleAssistantStream } from '@deepseek-ai/dsh-llm'
@@ -258,6 +259,26 @@ export class TokenMeter extends Service {
           return {
             ...node,
             images: node.images.map((image, index) => (indexes.has(index) ? { ...image, offloaded: true as const } : image)),
+          }
+        })
+        break
+      }
+      case 'image/describe': {
+        const described = new Map<SessionSeq, Map<number, string>>()
+        for (const target of event.data.targets) {
+          const perNode = described.get(target.seq) ?? new Map<number, string>()
+          perNode.set(target.imageIndex, target.description)
+          described.set(target.seq, perNode)
+        }
+        state.surface = state.surface.map((node) => {
+          const perNode = described.get(node.seq)
+          if (perNode === undefined) return node
+          return {
+            ...node,
+            images: node.images.map((image, index) => {
+              const description = perNode.get(index)
+              return description === undefined ? image : { ...image, description }
+            }),
           }
         })
         break
