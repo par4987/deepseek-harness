@@ -30,7 +30,7 @@ kind: "package-group"
 | [`compaction-basic/`](compaction-basic/README.zh.md) | 随 token 压力上升自动把较早历史压缩为摘要 | 注册 `ctx.compaction` |
 | [`compaction-tool-result-pruner/`](compaction-tool-result-pruner/README.zh.md) | 修剪超大工具输出，减少需要压缩的历史 | `ctx.toolResultPruner` |
 | [`compaction-image-offload/`](compaction-image-offload/README.zh.md) | 支持图片的路由拒绝请求时，把超出预算的请求图片替换为占位文本 | 监听 `agent/request-error` |
-| [`compaction-image-describe/`](compaction-image-describe/README.zh.md) | 所选路由只接受文本时，通过配置的视觉链描述表层图片 | 监听 `agent/request` |
+| [`compaction-image-describe/`](compaction-image-describe/README.zh.md) | 所选路由只接受文本时，通过配置的视觉链描述新入批与表层图片 | 监听 `agent/pre-step` 与 `agent/request` |
 | [`command-compact/`](command-compact/README.zh.md) | 按需压缩历史的 `/compact` 命令 | 注册到 `ctx.commands` |
 
 -----

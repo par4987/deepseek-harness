@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Text-only model routes stop losing image content. The plugin describes every retained image on the conversation surface through a chain of vision-capable routes you configure, records each description as a durable `image/describe` decision, and every later request carries that text in the image's place — across steps, resume, and replay. One attachment is described once and its occurrences share the text. A route that fails, stalls, or answers nothing yields to the next chain entry, and a chain with no answer leaves the deterministic placeholder.
+Text-only model routes stop losing image content. The plugin describes every retained image through a configured chain of vision-capable routes: a turn's incoming batch before the loop commits it, and anything on the conversation surface at the next request boundary. Each description is durable, on the image block or as an `image/describe` decision, and the request it serves carries that text in the image's place — across steps, resume, and replay. One attachment is described once and its occurrences share the text. A failed, stalled, or empty route yields to the next entry; a dead chain leaves the deterministic placeholder.
 
 ## Table of Contents
 
@@ -55,11 +55,11 @@ The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-a
 
 ### What you can observe
 
-Each description batch appends one `image/describe` event identifying every described occurrence by message-event sequence and image index; message events and surface node identities stay unchanged. The description becomes part of the next derived request, which logs a fresh `request/header` because the surface content changed. The describe call itself is one ordinary model request on the chain route.
+When a turn's incoming batch brings retained images and the agent's configured route accepts text only, the describe call on the chain route precedes the turn's first request, and the committed user message carries each description on the image block itself. Occurrences that reach the surface undescribed are covered at the next request boundary: one `image/describe` event identifies every described occurrence by message-event sequence and image index. The description is part of the derived request either way. The describe call itself is one ordinary model request on the chain route.
 
 ### Failures and recovery
 
-The plugin walks the current surface in model-request order, skips assistant nodes and images already described or offloaded, and describes each attachment once. Each route gets one attempt bounded by `describeTimeoutMs`; a failed finish, an empty answer, a stall past the budget, or an unresolvable route yields to the next entry. A chain with no answer appends nothing, so those occurrences keep the deterministic placeholder and the next request tries again. Route admission consults each model's declared input modalities and never sends an image to a route that declares none.
+The plugin skips images already described or offloaded and describes each attachment once, both for the incoming batch at admission and for the surface walk. Each route gets one attempt bounded by `describeTimeoutMs`; a failed finish, an empty answer, a stall past the budget, or an unresolvable route yields to the next entry. A chain with no answer changes nothing, so those occurrences keep the deterministic placeholder and the next request tries again. Admission and the walk consult each model's declared input modalities and never send an image to a route that declares none.
 
 -----
 
@@ -69,9 +69,9 @@ The plugin walks the current surface in model-request order, skips assistant nod
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-This package owns the event declaration, target validation, the immutable image-description projection, the chain ordering, and the per-request walk. It registers `imageDescribeProjection` with Session before accepting image/describe events. The same browser-safe definition is exported from `./projection` for detached replay; the installed format catalog assembles it for offline readers. Missing registration rejects live restore, and unloading a used definition blocks further message derivation. Token measurement folds recorded descriptions into the same surface pricing the offload marks use.
+This package owns the event declaration, target validation, the immutable image-description projection, the chain ordering, the admission describe, and the per-request walk. It registers `imageDescribeProjection` with Session before accepting image/describe events. The same browser-safe definition is exported from `./projection` for detached replay; the installed format catalog assembles it for offline readers. Missing registration rejects live restore, and unloading a used definition blocks further message derivation. Token measurement folds recorded descriptions into the same surface pricing the offload marks use.
 
-The `agent/request` listener resolves the call config first, then checks the resolved route's declared input modalities and runs the walk only for text-only routes. The vision inventory is rebuilt lazily and dropped on every `llm/adapters-updated` event; a configured route the registry does not advertise as vision-capable logs a warning and is still tried per request.
+The `agent/pre-step` listener runs after the downstream decision, describes the admitted batch's retained images when the agent's configured route — or, when creation left the pair to the request waterfall, the last logged route — declares text-only input, and returns the decision with each described image block carrying its description. The `agent/request` listener resolves the call config first, then checks the resolved route's declared input modalities and walks the surface for occurrences admission did not cover. The vision inventory is rebuilt lazily and dropped on every `llm/adapters-updated` event; a configured route the registry does not advertise as vision-capable logs a warning and is still tried per request.
 
 The pure projection rejects invalid, repeated, offloaded, or shadowed targets before Session commits the event, and the executor keeps no separate mutable description state.
 
@@ -96,7 +96,7 @@ The pure projection rejects invalid, repeated, offloaded, or shadowed targets be
 
 #### What the model sees
 
-Every described occurrence reaches a text-only route as text naming the attachment and the recorded description (`describedImageText`); an occurrence without a recorded description keeps the deterministic text-only placeholder (`textOnlyImageText`). Descriptions persist across requests, resume, and replay. The describe request itself carries the raw image beside the verbatim instruction below.
+Every described occurrence reaches a text-only route as text naming the attachment and the recorded description (`describedImageText`); an occurrence without a recorded description keeps the deterministic text-only placeholder (`textOnlyImageText`). An image the turn brings is described at admission, so the turn's first request already carries its description. Descriptions persist across requests, resume, and replay. The describe request itself carries the raw image beside the verbatim instruction below.
 
 ##### Verbatim describe instruction
 
@@ -110,13 +110,13 @@ A described occurrence costs its description text instead of the placeholder tex
 
 #### KV Cache effect
 
-The description replaces the placeholder text at the described occurrence, so provider cache reuse ends at the first message whose image was described. Later requests keep the same text and stay prefix-stable. The describe call itself is an independent model request.
+The description replaces the placeholder text at the described occurrence, so provider cache reuse ends at the first message whose image was described; for an admitted batch that is the message the turn brings. Later requests keep the same text and stay prefix-stable. The describe call itself is an independent model request that precedes the request it serves.
 
 ## Known Limitations and Deferred Work
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **A turn's incoming batch is described at the next request boundary** — the loop commits the accepted user batch after the `agent/request` waterfall, so the images a turn brings are first served as the deterministic placeholder; the recorded description applies from the next request onward. Describing at admission is the planned follow-up.
+- **Admission consults the agent's configured route** — it runs before the request waterfall resolves the final route, so a listener that overrides the route to an image-capable one still receives descriptions instead of image bytes for that batch. An agent whose route the waterfall supplies (creation without `provider`/`model`, no logged request yet) skips admission and falls back to the request-boundary walk.
 - **Descriptions are permanent** — a recorded description never reverts and is never re-described, matching the offload marks; a poor description stays for the session's lifetime.
 - **Only routes that declare text-only input trigger descriptions** — unlisted modalities pass image bytes through to the adapter; a route that misdeclares its modalities is not corrected.
 
@@ -128,6 +128,6 @@ The description replaces the placeholder text at the described occurrence, so pr
 
 This Dev Note is non-authoritative working context: notes for maintainers and open questions. Shipped behavior and accepted rationale live in the sections above, the package code, and the linked persistence-change record.
 
-- Describing a turn's incoming batch before its first request is the planned second piece of the GitHub discussion this package implements; the walk already handles every surface node generically, so the change is confined to the trigger.
+- Both pieces of the GitHub discussion this package implements ship together: admission describes the incoming batch at pre-step, and the request-boundary walk covers occurrences that reach the surface by any other path. A follow-up could relax the installed client's image-upload gate for text-only selections once a describe plugin is mounted, so the GUI stops asking users to switch models before the harness decides.
 
 </details>

@@ -53,7 +53,7 @@ afterEach(async () => {
   root = undefined
 })
 
-it('describes a surface image through the chain and the next request carries the text in its place', async () => {
+it('describes the admitted image through the chain and the turn\'s first request carries the text in its place', async () => {
   root = await mkdtemp(join(tmpdir(), 'dsh-image-describe-loader-'))
   const configPath = join(root, 'cordis.yml')
   const modules = new Map<string, unknown>([
@@ -119,27 +119,25 @@ it('describes a surface image through the chain and the next request carries the
       .filter(block => block.type === 'text')
       .map(block => block.text)
       .join('\n')
-  // The loop commits the accepted user batch after the agent/request
-  // waterfall, so the turn-1 attempt assembled before any description existed
-  // and served the deterministic placeholder; the turn-2 waterfall described
-  // the retained image, and its request carries the durable description in
-  // the image's place.
+  // Admission runs at pre-step, before the loop commits the accepted batch:
+  // the chain describes the image first, the committed user/message carries
+  // the description on the image block itself, and the turn's first request
+  // already substitutes it for the placeholder. The second turn proves the
+  // description persists and nothing describes twice.
   expect(model.requests.map(request => `${request.provider}/${request.model}`)).toEqual([
-    'text-fixture/text-only', 'vision-fixture/vl', 'text-fixture/text-only',
+    'vision-fixture/vl', 'text-fixture/text-only', 'text-fixture/text-only',
   ])
-  expect(requestText(model.requests[0])).toContain(textOnlyImageText(image.attachment))
-  expect(requestImages(model.requests[0])).toEqual([])
-  expect(requestImages(model.requests[1]).map(block => String(block.attachment.attachmentId)))
+  expect(requestImages(model.requests[0]).map(block => String(block.attachment.attachmentId)))
     .toEqual([String(image.attachment.attachmentId)])
+  expect(requestText(model.requests[1])).toContain(describedImageText(image.attachment, model.description))
+  expect(requestText(model.requests[1])).not.toContain(textOnlyImageText(image.attachment))
+  expect(requestImages(model.requests[1])).toEqual([])
   expect(requestText(model.requests[2])).toContain(describedImageText(image.attachment, model.description))
-  expect(requestText(model.requests[2])).not.toContain(textOnlyImageText(image.attachment))
+  expect(agent.session.snapshotEvents().some(event => event.type === 'image/describe')).toBe(false)
 
   const userMessage = agent.session.snapshotEvents().find(event => event.type === 'user/message')
-  const decision = agent.session.snapshotEvents().find(event => event.type === 'image/describe')
-  expect(decision).toMatchObject({
-    type: 'image/describe',
-    data: { targets: [{ seq: userMessage?.seq, imageIndex: 0, description: model.description }] },
-  })
+  const committed = userMessage?.data.content.find(block => block.type === 'image')
+  expect(committed?.description).toBe(model.description)
   const derived = agent.session.deriveMessages()
     .flatMap(message => message.content)
     .filter(block => block.type === 'image')

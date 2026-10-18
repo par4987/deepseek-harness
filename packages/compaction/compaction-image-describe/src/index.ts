@@ -1,19 +1,25 @@
 /**
- * Durable image description executor for text-only routes. When the resolved
- * route declares no image input, the plugin describes every retained image
- * occurrence on the session's surface through the configured vision chain and
- * records the text in an `image/describe` surface fact, so the next derived
- * request carries the description in the image's place.
+ * Durable image description executor for text-only routes. When the agent's
+ * configured route declares no image input, the plugin describes every
+ * retained image of the incoming batch at admission — before the loop commits
+ * it — and records the text on the image block itself, so the turn's first
+ * request already carries the description in the image's place. A second
+ * `agent/request` listener walks the whole session surface for occurrences
+ * that reached it undescribed (an image-capable route that became text-only,
+ * resume replay, a failed admission) and appends one `image/describe` decision
+ * for them.
  *
  * @module @deepseek-ai/dsh-compaction-image-describe
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-// Type-only: pulls the agent event map merge (`agent/request`).
-import type {} from '@deepseek-ai/dsh-agent'
+// Type-only: pulls the agent type and event map merges (`agent/pre-step`, `agent/request`).
+import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { LlmModelInfo } from '@deepseek-ai/dsh-llm'
+import { isRetainedImage } from '@deepseek-ai/dsh-llm'
 import z from '@deepseek-ai/schemastery'
 import type { DescribeChain } from './chain.ts'
+import { describeAdmittedImages } from './admission.ts'
 import { describeUndescribedImages } from './image-describe.ts'
 import { imageDescribeProjection } from './projection.ts'
 import type { ImageDescribeConfig, VisionRoute } from './types.ts'
@@ -49,7 +55,8 @@ export const Config: z<ImageDescribeConfig> = z.object({
 })
 
 /**
- * Install the durable description executor around request-config resolution.
+ * Install the durable description executor around batch admission and
+ * request-config resolution.
  * @param ctx - plugin context that owns the projection and the config listener.
  * @param config - validated route chain and description bounds.
  */
@@ -73,6 +80,50 @@ export function apply(ctx: Context, config: ImageDescribeConfig): void {
     inventory = undefined
   }, { global: true })
 
+  const describeChain = (selected: { provider: string; model: string }, signal: AbortSignal | undefined): DescribeChain => ({
+    routes: config.visionRoutes,
+    routeStrategy: config.routeStrategy,
+    describePrompt: config.describePrompt,
+    maxChars: config.maxDescriptionChars,
+    describeTimeoutMs: config.describeTimeoutMs,
+    selected,
+    signal,
+    logger: ctx.logger,
+    visionInventory,
+    resolveModelInfo: (provider, model, chainSignal) => ctx.llm.resolveModelInfo(provider, model, chainSignal),
+    stream: options => ctx.llm.stream(options),
+  })
+
+  // Admission describes the incoming batch before the loop commits it, so the
+  // turn's first request already carries the descriptions. Admission consults
+  // the agent's configured route (the last logged one when creation left the
+  // pair to the request waterfall): the request waterfall that resolves the
+  // final route runs after the batch commits.
+  ctx.on('agent/pre-step', async ({ agent, signal }, next) => {
+    const decision = await next()
+    if (decision.kind === 'reject' || signal.aborted) return decision
+    if (!decision.messages.some(message => message.content.some(
+      block => block.type === 'image' && isRetainedImage(block)))) return decision
+    const route = admissionRoute(agent)
+    if (route === undefined) return decision
+    let wantsDescriptions: boolean
+    try {
+      const info = await ctx.llm.resolveModelInfo(route.provider, route.model, signal)
+      // Unlisted modalities pass images through to the adapter, matching the
+      // runtime's own projection; only a route that declares text-only input
+      // gets descriptions.
+      wantsDescriptions = info.inputModalities !== undefined && !info.inputModalities.includes('image')
+    } catch (error: unknown) {
+      // The gate resolves before the loop's own call preparation; a route that
+      // fails here fails the request loud moments later without this attribution.
+      ctx.logger.warn('image-describe: could not resolve the admitted route before the request; the batch stays as admitted', error)
+      return decision
+    }
+    if (!wantsDescriptions) return decision
+    const described = await describeAdmittedImages(decision.messages, describeChain(route, signal))
+    return described === decision.messages ? decision : { ...decision, messages: [...described] }
+  })
+
   ctx.on('agent/request', async ({ agent, signal }, next) => {
     const callConfig = await next()
     // Unlisted modalities pass images through to the adapter, matching the
@@ -80,22 +131,19 @@ export function apply(ctx: Context, config: ImageDescribeConfig): void {
     // gets descriptions.
     const info = await ctx.llm.resolveModelInfo(callConfig.provider, callConfig.model, signal)
     if (info.inputModalities === undefined || info.inputModalities.includes('image')) return callConfig
-    const chain: DescribeChain = {
-      routes: config.visionRoutes,
-      routeStrategy: config.routeStrategy,
-      describePrompt: config.describePrompt,
-      maxChars: config.maxDescriptionChars,
-      describeTimeoutMs: config.describeTimeoutMs,
-      selected: { provider: callConfig.provider, model: callConfig.model },
-      signal,
-      logger: ctx.logger,
-      visionInventory,
-      resolveModelInfo: (provider, model, chainSignal) => ctx.llm.resolveModelInfo(provider, model, chainSignal),
-      stream: options => ctx.llm.stream(options),
-    }
-    await describeUndescribedImages(agent.session, chain)
+    await describeUndescribedImages(agent.session, describeChain(callConfig, signal))
     return callConfig
   })
+}
+
+/** The route whose modalities gate admission: the agent's configured pair, or the last logged request's. */
+function admissionRoute(agent: Agent): { provider: string; model: string } | undefined {
+  if (agent.options.provider && agent.options.model) {
+    return { provider: agent.options.provider, model: agent.options.model }
+  }
+  const last = agent.session.requestHeader()?.config
+  if (last === undefined || !last.provider || !last.model) return undefined
+  return { provider: last.provider, model: last.model }
 }
 
 /** Every route the live registry advertises as accepting image input. */

@@ -30,7 +30,7 @@ Each package below provides one piece of the feature; open a package page for ho
 | [`compaction-basic/`](compaction-basic/README.md) | Automatic condensation of older history into a summary as token pressure builds | registers `ctx.compaction` |
 | [`compaction-tool-result-pruner/`](compaction-tool-result-pruner/README.md) | Trims oversized tool outputs so less history needs condensing | `ctx.toolResultPruner` |
 | [`compaction-image-offload/`](compaction-image-offload/README.md) | Replaces over-budget request images with placeholders when an image-capable route rejects a request | listens to `agent/request-error` |
-| [`compaction-image-describe/`](compaction-image-describe/README.md) | Describes surface images through a configured vision chain when the selected route accepts text only | listens to `agent/request` |
+| [`compaction-image-describe/`](compaction-image-describe/README.md) | Describes the incoming batch and surface images through a configured vision chain when the selected route accepts text only | listens to `agent/pre-step` and `agent/request` |
 | [`command-compact/`](command-compact/README.md) | The `/compact` command to condense history on demand | registers on `ctx.commands` |
 
 -----
